@@ -1,8 +1,8 @@
-# Copyright 2022-2024 Gentoo Authors
+# Copyright 2022-2025 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=8
-PYTHON_COMPAT=( python3_{10..12} )
+PYTHON_COMPAT=( python3_{10..13} )
 DISTUTILS_USE_PEP517=setuptools
 inherit distutils-r1 xdg
 
@@ -37,7 +37,7 @@ RDEPEND="dev-libs/keybinder:3[introspection]
 DEPEND="dev-util/intltool"
 
 PATCHES=(
-	 "${FILESDIR}/${PN}-4.6.0-python312.patch"
+	"${FILESDIR}/${PN}-4.6.0-python312.patch"
 )
 
 src_prepare() {
