@@ -29,7 +29,8 @@ DEPEND="${RDEPEND}"
 
 src_prepare() {
 	eapply "${FILESDIR}"/${PN}-1.15.0-hidden.patch \
-		"${FILESDIR}"/${PN}-1.18.0-cmake.patch
+		"${FILESDIR}"/${PN}-1.18.0-cmake.patch \
+		"${FILESDIR}"/${PN}-1.18.0-remove-explicit-from-the-constructor-of-OpSchemaRegisterOnce.patch
 	cmake_src_prepare
 	distutils-r1_src_prepare
 }

@@ -1,0 +1,23 @@
+From: Pavel Sobolev <contact@paveloom.dev>
+Subject: [PATCH] Remove `explicit` from the constructor of `OpSchemaRegisterOnce`.
+
+It was not `explicit` in v0.17.0, and this change in v0.18.0 broke the build of
+`sci-libs/onnxruntime` in GURU.
+
+Bug: https://github.com/onnx/onnx/issues/6708
+Bug: https://github.com/microsoft/onnxruntime/issues/24561
+
+Signed-off-by: Pavel Sobolev <contact@paveloom.dev>
+
+--- a/onnx/defs/schema.h
++++ b/onnx/defs/schema.h
+@@ -980,7 +980,7 @@ class OpSchemaRegistry final : public ISchemaRegistry {
+   class OpSchemaRegisterOnce final {
+    public:
+     // Export to cpp custom register macro
+-    explicit OpSchemaRegisterOnce(
++    OpSchemaRegisterOnce(
+         OpSchema op_schema,
+         int opset_version_to_load = 0,
+         bool fail_duplicate_schema = true) {
+
