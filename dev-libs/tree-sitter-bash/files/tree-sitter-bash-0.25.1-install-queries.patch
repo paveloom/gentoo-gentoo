@@ -1,0 +1,26 @@
+From: Pavel Sobolev <contact@paveloom.dev>
+Subject: [PATCH] Install queries.
+
+Upstream-PR: https://github.com/tree-sitter/tree-sitter-bash/pull/294
+Signed-off-by: Pavel Sobolev <contact@paveloom.dev>
+
+--- a/Makefile
++++ b/Makefile
+@@ -13,6 +13,7 @@ TS ?= tree-sitter
+ 
+ # install directory layout
+ PREFIX ?= /usr/local
++DATADIR ?= $(PREFIX)/share
+ INCLUDEDIR ?= $(PREFIX)/include
+ LIBDIR ?= $(PREFIX)/lib
+ PCLIBDIR ?= $(LIBDIR)/pkgconfig
+@@ -76,6 +77,8 @@ install: all
+ 	install -m755 lib$(LANGUAGE_NAME).$(SOEXT) '$(DESTDIR)$(LIBDIR)'/lib$(LANGUAGE_NAME).$(SOEXTVER)
+ 	ln -sf lib$(LANGUAGE_NAME).$(SOEXTVER) '$(DESTDIR)$(LIBDIR)'/lib$(LANGUAGE_NAME).$(SOEXTVER_MAJOR)
+ 	ln -sf lib$(LANGUAGE_NAME).$(SOEXTVER_MAJOR) '$(DESTDIR)$(LIBDIR)'/lib$(LANGUAGE_NAME).$(SOEXT)
++	install -d '$(DESTDIR)$(DATADIR)'/tree-sitter/queries/bash
++	install -m644 queries/*.scm '$(DESTDIR)$(DATADIR)'/tree-sitter/queries/bash
+ 
+ uninstall:
+ 	$(RM) '$(DESTDIR)$(LIBDIR)'/lib$(LANGUAGE_NAME).a \
+
