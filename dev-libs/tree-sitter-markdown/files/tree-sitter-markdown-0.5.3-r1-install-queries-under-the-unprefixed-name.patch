@@ -1,0 +1,33 @@
+From: Pavel Sobolev <contact@paveloom.dev>
+Subject: [PATCH] Install queries under the unprefixed name
+
+Signed-off-by: Pavel Sobolev <contact@paveloom.dev>
+
+--- a/common/common.mak
++++ b/common/common.mak
+@@ -13,6 +13,7 @@ INCLUDEDIR ?= $(PREFIX)/include
+ LIBDIR ?= $(PREFIX)/lib
+ BINDIR ?= $(PREFIX)/bin
+ PCLIBDIR ?= $(LIBDIR)/pkgconfig
++LANGUAGE_NAME_UNPREFIXED := $(subst tree-sitter-,,$(LANGUAGE_NAME))
+ 
+ # source/object files
+ PARSER := $(SRC_DIR)/parser.c
+@@ -78,7 +79,7 @@ $(PARSER): $(SRC_DIR)/grammar.json
+ 	$(TS) generate $^
+ 
+ install: all
+-	install -d '$(DESTDIR)$(DATADIR)'/tree-sitter/queries/$(LANGUAGE_NAME) '$(DESTDIR)$(INCLUDEDIR)'/tree_sitter '$(DESTDIR)$(PCLIBDIR)' '$(DESTDIR)$(LIBDIR)'
++	install -d '$(DESTDIR)$(DATADIR)'/tree-sitter/queries/$(LANGUAGE_NAME_UNPREFIXED) '$(DESTDIR)$(INCLUDEDIR)'/tree_sitter '$(DESTDIR)$(PCLIBDIR)' '$(DESTDIR)$(LIBDIR)'
+ 	install -m644 bindings/c/tree-sitter/$(LANGUAGE_NAME).h '$(DESTDIR)$(INCLUDEDIR)'/tree_sitter/$(LANGUAGE_NAME).h
+ 	install -m644 $(LANGUAGE_NAME).pc '$(DESTDIR)$(PCLIBDIR)'/$(LANGUAGE_NAME).pc
+ 	install -m644 lib$(LANGUAGE_NAME).a '$(DESTDIR)$(LIBDIR)'/lib$(LANGUAGE_NAME).a
+@@ -93,7 +94,7 @@ else
+ 	cd '$(DESTDIR)$(LIBDIR)' && ln -sf lib$(LANGUAGE_NAME).$(SOEXTVER_MAJOR) lib$(LANGUAGE_NAME).$(SOEXT)
+ endif
+ ifneq ($(wildcard queries/*.scm),)
+-	install -m644 queries/*.scm '$(DESTDIR)$(DATADIR)'/tree-sitter/queries/$(LANGUAGE_NAME)
++	install -m644 queries/*.scm '$(DESTDIR)$(DATADIR)'/tree-sitter/queries/$(LANGUAGE_NAME_UNPREFIXED)
+ endif
+ 
+ uninstall:
