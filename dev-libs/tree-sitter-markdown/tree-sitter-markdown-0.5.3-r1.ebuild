@@ -21,7 +21,10 @@ KEYWORDS="~amd64 ~arm ~arm64 ~ppc ~ppc64 ~riscv ~x86"
 
 RDEPEND="!dev-libs/tree-sitter-markdown-inline"
 
-PATCHES=( "${FILESDIR}"/${P}-python.patch )
+PATCHES=(
+	"${FILESDIR}/${PN}-0.5.3-python.patch"
+	"${FILESDIR}/${PN}-0.5.3-r1-install-queries-under-the-unprefixed-name.patch"
+)
 
 src_test() {
 	pushd tree-sitter-markdown 2>/dev/null
