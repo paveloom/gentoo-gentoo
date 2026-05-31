@@ -18,5 +18,8 @@ src_prepare() {
 	# Trick `tree-sitter-grammar.eclass` to make it use `make`
 	ln -s ../pyproject.toml . || die
 
+	eapply --directory=.. \
+		"${FILESDIR}/${PN}-0.5.3-r1-install-queries-under-the-unprefixed-name.patch"
+
 	tree-sitter-grammar_src_prepare
 }
