@@ -1,0 +1,23 @@
+# Copyright 1999-2026 Gentoo Authors
+# Distributed under the terms of the GNU General Public License v2
+
+EAPI=8
+
+TS_BINDINGS=( python )
+TS_PV="8b5b49eb196bec7040441bee33b2c9a4838d6967"
+
+inherit tree-sitter-grammar
+
+DESCRIPTION="C++ grammar for Tree-sitter"
+HOMEPAGE="https://github.com/tree-sitter/tree-sitter-cpp"
+
+LICENSE="MIT"
+SLOT="0"
+KEYWORDS="~amd64 ~arm ~arm64 ~ppc ~ppc64"
+
+# requires test data from tree-sitter-c
+RESTRICT="test"
+
+PATCHES=(
+	"${FILESDIR}/${PN}-0.23.4-r1-install-queries.patch"
+)
