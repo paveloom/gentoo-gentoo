@@ -148,6 +148,9 @@ src_configure() {
 		--release=$(usex debug safe fast)
 	)
 
+	# Pass version string to build if not using git.
+	[[ ${PV} = 9999 ]] || my_zbs_args+=( -Dversion-string="${PV}" )
+
 	# Scenarios of compilation:
 
 	# With LLVM, native:
