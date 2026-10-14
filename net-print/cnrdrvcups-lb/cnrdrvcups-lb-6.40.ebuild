@@ -1,0 +1,240 @@
+# Copyright 1999-2026 Gentoo Authors
+# Distributed under the terms of the GNU General Public License v2
+
+EAPI=8
+
+inherit autotools desktop flag-o-matic toolchain-funcs
+
+# To get the latest download URL, go to the homepage below, select any printer,
+# copy the download link for the driver that matches the description below. The
+# link will look something like this:
+#
+# https://pdisp01.c-wss.com/gdl/WWUFORedirectTarget.do?id=MDEwMDAwNzY1ODUx&cmp=ABX&lang=EN
+#
+# `MDEwMDAwNzY1ODUx` here is a Base64-encoded `010000765851`, where `0100007658`
+# is the Content ID for the UFR II Linux driver (always the same) and `51` is a
+# sequential release number for that Content ID (changes with each version).
+#
+# As the name of the endpoint suggests, this URL will redirect. Run it through
+# `curl -vL` to get the direct URL. Then, update the values below.
+#
+# Note that both of these URLs will die after a while.
+
+CID_REV="51" # Content ID revision
+P_REV="05"   # Package revision
+
+MY_PV="${PV//\./}"
+
+DESCRIPTION="Canon UFR II / LIPSLX Printer Driver for Linux"
+HOMEPAGE="https://www.canon-europe.com/support/products/imagerunner/"
+SRC_URI="https://gdlp01.c-wss.com/gds/8/0100007658/${CID_REV}/linux-UFRII-drv-v${MY_PV}-m17n-${P_REV}.tar.gz"
+
+S="${WORKDIR}/linux-UFRII-drv-v${MY_PV}-m17n/Sources"
+
+LICENSE="Canon-UFR-II GPL-2 MIT"
+SLOT="0"
+KEYWORDS="-* ~amd64 ~x86"
+
+DEPEND="dev-libs/atk
+	dev-libs/glib:2
+	dev-libs/libxml2:2=
+	gnome-base/libglade:2.0
+	media-libs/jbigkit
+	media-libs/libjpeg-turbo
+	net-print/cups
+	x11-libs/cairo
+	x11-libs/gdk-pixbuf:2
+	x11-libs/gtk+:2
+	x11-libs/gtk+:3
+	x11-libs/pango"
+RDEPEND="${DEPEND}
+	!net-print/cndrvcups-common-lb
+	!net-print/cndrvcups-lb"
+
+HTML_DOCS=(
+	"${WORKDIR}"/linux-UFRII-drv-v${MY_PV}-m17n/Documents/uk_eng/README-ufr2-${PV//0}xUK.html
+	"${WORKDIR}"/linux-UFRII-drv-v${MY_PV}-m17n/Documents/uk_eng/UsersGuide-ufr2-UK.html
+)
+
+common_op() {
+	local i
+	for i in backend buftool cngplp cnjbig rasterfilter; do
+		cd "${S}/cnrdrvcups-common-${PV}/${i}" ||
+			die "failed to switch dir to ${i}"
+		"${@}"
+		cd "${S}" || die "failed to switch dir back from ${i} to ${S}"
+	done
+}
+
+driver_op() {
+	local i
+	for i in cngplp cngplp/files cpca pdftocpca; do
+		cd "${S}/cnrdrvcups-lb-${PV}/${i}" ||
+			die "failed to switch dir to ${i}"
+		"${@}"
+		cd "${S}" || die "failed to switch dir back from ${i} to ${S}"
+	done
+}
+
+pkg_setup() {
+	QA_PREBUILT="/usr/bin/cnsetuputil2
+		/usr/bin/cnrsdrvufr2
+		/usr/bin/cnpkmoduleufr2r
+		/usr/bin/cnpkbidir
+		/usr/bin/cnpdfdrv
+		/usr/$(get_libdir)/libufr2filterr.so.1.0.0
+		/usr/$(get_libdir)/libColorGearCufr2.so.2.0.0
+		/usr/$(get_libdir)/libcnlbcmr.so.1.0
+		/usr/$(get_libdir)/libcanon_slimufr2.so.1.0.0
+		/usr/$(get_libdir)/libcanonufr2r.so.1.0.0
+		/usr/$(get_libdir)/libcaiowrapufr2.so.1.0.0
+		/usr/$(get_libdir)/libcaiocnpkbidir.so.1.0.0
+		/usr/$(get_libdir)/libcaepcmufr2.so.1.0"
+
+	QA_SONAME="/usr/$(get_libdir)/libcaiocnpkbidir.so.1.0.0"
+}
+
+src_unpack() {
+	unpack ${A}
+	cd "${WORKDIR}/linux-UFRII-drv-v${MY_PV}-m17n/Sources/" || die
+	unpack ./${P}-1.05.tar.xz
+}
+
+src_prepare() {
+	default
+
+	# https://bugs.gentoo.org/774324
+	common_op sed -i -e 's/$(COMMON_SUFFIX)/${COMMON_SUFFIX}/' configure.in || die
+
+	common_op mv configure.in configure.ac || die "failed to move configure.in"
+	driver_op mv configure.in configure.ac || die "failed to move configure.in"
+
+	common_op sed -i -e 's/configure.in/configure.ac/' configure.ac || die
+	driver_op sed -i -e 's/configure.in/configure.ac/' configure.ac || die
+
+	# https://bugs.gentoo.org/931847
+	common_op sed -i -e "s|dir = /usr/lib/cups/|dir = /usr/$(get_libdir)/cups/|" Makefile.am || die
+	driver_op sed -i -e "s|dir = /usr/lib/cups/|dir = /usr/$(get_libdir)/cups/|" Makefile.am || die
+
+	# This should work with autoreconf
+	export "LIBS=-lgtk-x11-2.0 -lgobject-2.0 -lglib-2.0 -lgmodule-2.0"
+
+	# Other components already depend on compiled product
+	append-ldflags -L"${S}/cnrdrvcups-common-${PV}/buftool"
+
+	common_op eautoreconf
+	driver_op eautoreconf
+
+	# Fix a QA issue with .desktop file,
+	sed -i 's/Application;Utility/Utility/g' "${S}"/cnrdrvcups-utility-${PV}/data/cnsetuputil2.desktop ||
+		die "Failed to modify cnsetuputil2.desktop file."
+
+	append-cflags -fcommon
+
+	# For some reason, @AR@ is defined everywhere else correctly, but not here.
+	sed -i -e "s/AR = ar/AR = $(tc-getAR)/g" ./cnrdrvcups-common-${PV}/buftool/Makefile.in || die
+
+	eapply -d "${S}/cnrdrvcups-lb-${PV}" -- "${FILESDIR}/${PN}-fix-the-cast-error.patch"
+
+	# Make will complain about these files missing
+	pushd "${S}/cnrdrvcups-lb-${PV}/cngplp/files" || die
+	cp CNRCUPSBX510Z{S,K}.res || die
+	cp CNRCUPSBX540Z{S,K}.res || die
+	cp CNRCUPSBX570Z{S,K}.res || die
+	cp CNRCUPSBX710Z{S,K}.res || die
+	cp CNRCUPSBX770Z{J,K}.res || die
+	cp CNRCUPSCJ1128FZ{S,K}.res || die
+	cp CNRCUPSCJ1128PZ{S,K}.res || die
+	cp CNRCUPSLBP101Z{S,K}.res || die
+	cp CNRCUPSMF102Z{S,K}.res || die
+	popd || die
+}
+
+src_configure() {
+	common_op econf
+	driver_op econf
+}
+
+src_compile() {
+	common_op emake
+	driver_op emake
+}
+
+src_install() {
+	common_op emake DESTDIR="${D}" install COMMON_SUFFIX=2
+	driver_op emake DESTDIR="${D}" install COMMON_SUFFIX=2
+
+	insinto /usr/share/cups
+	doins "${S}"/cnrdrvcups-common-${PV}/Rule/canon-laser-printer.usb-quirks
+
+	if use amd64; then
+		cd "${S}"/lib/libs64/intel/ || die "failed to switch into libs64"
+	elif use x86; then
+		cd "${S}"/lib/libs32/intel/ || die "failed to switch into libs32"
+	else
+		die "I don't know what directory to switch into!"
+	fi
+
+	dolib.so libcaepcmufr2.so.1.0 libcaiocnpkbidir.so.1.0.0 \
+		libcaiowrapufr2.so.1.0.0 libcanonufr2r.so.1.0.0 \
+		libcanon_slimufr2.so.1.0.0 libcnlbcmr.so.1.0 \
+		libColorGearCufr2.so.2.0.0 libufr2filterr.so.1.0.0
+
+	dosym libcaepcmufr2.so.1.0 /usr/$(get_libdir)/libcaepcmufr2.so
+	dosym libcaepcmufr2.so.1.0 /usr/$(get_libdir)/libcaepcmufr2.so.1
+
+	dosym libcaiocnpkbidir.so.1.0.0 /usr/$(get_libdir)/libcaiocnpkbidir.so
+	dosym libcaiocnpkbidir.so.1.0.0 /usr/$(get_libdir)/libcaiocnpkbidir.so.1
+
+	dosym libcaiowrapufr2.so.1.0.0 /usr/$(get_libdir)/libcaiowrapufr2.so
+	dosym libcaiowrapufr2.so.1.0.0 /usr/$(get_libdir)/libcaiowrapufr2.so.1
+
+	dosym libcanonufr2r.so.1.0.0 /usr/$(get_libdir)/libcanonufr2r.so
+	dosym libcanonufr2r.so.1.0.0 /usr/$(get_libdir)/libcanonufr2r.so.1
+
+	dosym libcanon_slimufr2.so.1.0.0 /usr/$(get_libdir)/libcanon_slimufr2.so
+	dosym libcanon_slimufr2.so.1.0.0 /usr/$(get_libdir)/libcanon_slimufr2.so.1
+
+	dosym libcnlbcmr.so.1.0 /usr/$(get_libdir)/libcnlbcmr.so
+	dosym libcnlbcmr.so.1.0 /usr/$(get_libdir)/libcnlbcmr.so.1
+
+	dosym libColorGearCufr2.so.2.0.0 /usr/$(get_libdir)/libColorGearCufr2.so
+	dosym libColorGearCufr2.so.2.0.0 /usr/$(get_libdir)/libColorGearCufr2.so.2
+
+	# https://bugs.gentoo.org/735970
+	dosym libColorGearCufr2.so.2.0.0 /usr/$(get_libdir)/libColorGearC.so.2
+
+	dosym libufr2filterr.so.1.0.0 /usr/$(get_libdir)/libufr2filterr.so
+	dosym libufr2filterr.so.1.0.0 /usr/$(get_libdir)/libufr2filterr.so.1
+
+	dobin cnpdfdrv cnpkbidir cnpkmoduleufr2r cnrsdrvufr2 cnsetuputil2
+
+	insinto /usr/share/cnpkbidir
+	doins ./cnpkbidir_info*
+
+	insinto /usr/share/ufr2filterr
+	doins ./ThLB*
+
+	cd "${S}" || die "Failed to switch back into ${S} during installation."
+
+	dosym ../../../$(get_libdir)/cups/backend/cnusb /usr/libexec/cups/backend/cnusb
+	dosym ../../../$(get_libdir)/cups/filter/pdftocpca /usr/libexec/cups/filter/pdftocpca
+	dosym ../../../$(get_libdir)/cups/filter/rastertoufr2 /usr/libexec/cups/filter/rastertoufr2
+
+	insinto /usr/share/caepcm/ufr2
+	doins -r "${S}"/lib/data/ufr2/
+
+	insinto /usr/share/cups/model
+	doins ${P}/ppd/*.ppd
+
+	domenu ./cnrdrvcups-utility-${PV}/data/cnsetuputil2.desktop
+	doicon ./cnrdrvcups-utility-${PV}/data/cnsetuputil.png
+
+	einstalldocs
+	newdoc "${S}"/cnrdrvcups-common-${PV}/README README.common
+	newdoc "${S}"/cnrdrvcups-common-${PV}/cngplp/README README.cngplp.common
+	newdoc "${S}"/cnrdrvcups-lb-${PV}/README README.lb
+	newdoc "${S}"/cnrdrvcups-lb-${PV}/cngplp/README README.cngplp.driver
+
+	find "${D}" -name '*.la' -type f -delete || die
+}
