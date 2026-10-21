@@ -12,6 +12,10 @@ LICENSE="MIT"
 SLOT="0"
 KEYWORDS="~amd64"
 
+PATCHES=(
+	"${FILESDIR}/${PN}-0.23.2-r1-install-queries.patch"
+)
+
 src_prepare() {
 	# Let the `_get_tsg_abi_ver` function extract the ABI version
 	mkdir src || die
